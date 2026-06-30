@@ -1,0 +1,4 @@
+2026-06-29 21:27:11,404 [__main__] ERROR Reader Failed: path 'test' does not exist
+2026-06-30 08:58:08,475 [__main__] INFO Reader Succeed! Read 0
+2026-06-30 09:09:40,212 [__main__] INFO Reader Succeed! Read 0 file(s)
+2026-06-30 09:09:40,212 [__main__] INFO Transfer Succeed! Transferred 0 file(s)

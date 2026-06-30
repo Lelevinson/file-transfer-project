@@ -1,36 +1,35 @@
 import pathlib
-import typing
+from utils import *
 
 
-class Testing_Service: ...
+class Testing: ...
 
 
-class Validate_Service:
+class Validator:
     """
     Receive: Directory path string
     Validate if path exist and is indeed a directory path
-    Return: Boolean
+    Return: None, just error checking
     """
 
     @staticmethod
-    def validate(path: pathlib.Path) -> bool:
-        return path.exists() and path.is_dir()  # need exist: TRUE ---> valid path
-        # and is_dir: TRUE ---> is a directory path (not to a file)
+    def validate_path(path: pathlib.Path) -> None:
+        if not path.exists():
+            raise FileNotFoundError(f"path '{path}' does not exist")
+        if not path.is_dir():
+            raise NotADirectoryError(f"path '{path}' is not a directory")
 
 
-class List_File_Service:
+class ListFile:
     """
     Receive: Directory path string
     List the file(s) inside that directory
-    Return: List of strings
+    Return: List of pathlib.Path object
     """
 
     @staticmethod
-    def list(path: pathlib.Path) -> list:
-        return list(
-            path.iterdir()
-        )  # originally, the function return an iterator, which in Python disappear after looping
-        # since we need the list of strings, we convert it to list
+    def list_file(path: pathlib.Path) -> list[pathlib.Path]:
+        return [file for file in path.iterdir() if file.is_file()]
 
 
 class Reader:
@@ -42,8 +41,8 @@ class Reader:
     def __init__(self, path: str):
         self._path = pathlib.Path(path)
 
-    def getFile(self) -> list:
-        if Validate_Service.validate(self._path):
-            return List_File_Service.list(self._path)
-        else:
-            return []
+    def get_file(self) -> list[pathlib.Path]:
+        Validator.validate_path(self._path)  # will raise errors to main if any
+        return ListFile.list_file(
+            self._path
+        )  # will return a list, if errors then will also raise to main
