@@ -6,9 +6,12 @@ from utils import *
 
 class Validator:
     """
-    Receive: Directory path string
-    Validate if path exist and is indeed a directory path
-    Return: None, just error checking
+    Receive: [String of target directory],
+             [List of pathlib.Path objects]
+    Use For: [Validate if path exist and is indeed a directory path],
+             [Hash the file's path]
+    Return: [None],
+            [List of hashed string of the file's path]
     """
 
     @staticmethod
@@ -31,7 +34,9 @@ class Validator:
 class Transfer:
     """
     Main Transfer Object
-    Utils (currently): transfer list of file names to a target directory path
+    Receive: List of Pathlib.Path object and String of target directory
+    Utilities (currently): transfer list of file names to a target directory path
+    Return: None
     """
 
     @staticmethod
@@ -39,12 +44,14 @@ class Transfer:
         target_path = pathlib.Path(target_location)
         Validator.validate_path(target_path)  # will raise errors to main if any
 
+        # hashing source directory files
         source_hash = Validator.hash_file_list(path_list)
 
-        # hashing source directory files
+        # move files from source to target
         for file in path_list:
             shutil.move(file, target_path)
 
+        # hashing target directory files
         new_path_list = [target_path / file.name for file in path_list]
         target_hash = Validator.hash_file_list(new_path_list)
 

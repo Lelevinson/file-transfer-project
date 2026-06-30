@@ -7,8 +7,8 @@ class Testing: ...
 
 class Validator:
     """
-    Receive: Directory path string
-    Validate if path exist and is indeed a directory path
+    Receive: String of source directory
+    Use For: Validate if path exist and is indeed a directory path
     Return: None, just error checking
     """
 
@@ -22,9 +22,9 @@ class Validator:
 
 class ListFile:
     """
-    Receive: Directory path string
-    List the file(s) inside that directory
-    Return: List of pathlib.Path object
+    Receive: String of source directory
+    Use For: List the file(s) inside that directory
+    Return: List of pathlib.Path objects
     """
 
     @staticmethod
@@ -35,7 +35,9 @@ class ListFile:
 class Reader:
     """
     Main Reader object
-    Utils (currently): get list of file names
+    Receive: String of source directory
+    Utilities (currently): get list of file names
+    Return: List of pathlib.Path objects
     """
 
     def __init__(self, path: str):
