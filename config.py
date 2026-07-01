@@ -5,7 +5,7 @@ TARGET_ROOT = "D:\\安法\\project\\mock-data-target"
 # If this is empty, the program will transfer every folder in FOLDER_NAMES.
 # If only want to test one folder, put the folder name here, for example:
 # SELECTED_FOLDER = "體組成"
-SELECTED_FOLDER = "檢驗紀錄"
+SELECTED_FOLDER = ""
 
 FOLDER_NAMES = [
     "體組成",

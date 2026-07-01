@@ -22,6 +22,11 @@ class Validator:
             raise NotADirectoryError(f"path '{path}' is not a directory")
 
     @staticmethod
+    def validate_hash(source_hash: dict[str, str], target_hash: dict[str, str]) -> None:
+        if source_hash != target_hash:
+            raise OSError("Hash checking failed after transfer")
+
+    @staticmethod
     def hash_file(file_path: pathlib.Path) -> str:
         with file_path.open("rb") as file:
             return hashlib.file_digest(file, "sha256").hexdigest()
@@ -55,11 +60,5 @@ class Transfer:
         new_path_list = [target_path / file.name for file in path_list]
         target_hash = Validator.hash_file_list(new_path_list)
 
-        if source_hash != target_hash:
-            raise OSError(
-                "Hash checking failed after transfer"
-            )  # raise error if num of hashed source file list != num of hashed target file list
-
-
-# if __name__ == "__main__":
-#     Transfer.transfer_file()
+        # raise error if num of hashed source file list != num of hashed target file list
+        Validator.validate_hash(source_hash, target_hash)

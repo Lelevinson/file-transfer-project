@@ -43,8 +43,8 @@ class Reader:
     def __init__(self, path: str):
         self._path = pathlib.Path(path)
 
+    # will raise errors to main if any
+    # will return a list, if errors then will also raise to main
     def get_file(self) -> list[pathlib.Path]:
-        Validator.validate_path(self._path)  # will raise errors to main if any
-        return ListFile.list_file(
-            self._path
-        )  # will return a list, if errors then will also raise to main
+        Validator.validate_path(self._path)
+        return ListFile.list_file(self._path)
