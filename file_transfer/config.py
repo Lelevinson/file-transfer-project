@@ -1,5 +1,11 @@
+"""
+App configuration.
+
+The settings the app reads at startup: where files come from (source root),
+where they go (target root), and the list of category folders.
+"""
+
 SOURCE_ROOT = "D:\\安法\\project\\mock-data-source"
-# SOURCE_ROOT = "ABCD"
 TARGET_ROOT = "D:\\安法\\project\\mock-data-target"
 
 # If this is empty, the program will transfer every folder in FOLDER_NAMES.

@@ -1,3 +1,11 @@
+"""
+Transfer service.
+
+Combines the reader and the file operations into one action: transfer all
+files in a category folder from the source to the matching target folder.
+This is what the watcher calls for each folder.
+"""
+
 # python/pip packages
 import pathlib
 import logging

@@ -1,3 +1,7 @@
+"""
+Small shared helpers used across the app.
+"""
+
 import sys
 import pathlib
 
