@@ -1,10 +1,13 @@
 """
 Main entry point of the app.
 
-This file starts the app directly:
-1. Start watchdog watcher
-2. Start system tray app
-3. Cleanly stop both when app exits
+Wiring only. It starts the pieces and shuts them down cleanly:
+1. set up logging
+2. start the watchdog watcher
+3. start the system tray app
+4. stop the watcher when the app exits
+
+The *how* of the watcher and tray lives in its own module (watch, ui).
 """
 
 # python/pip packages
@@ -13,10 +16,9 @@ import signal
 
 # own modules
 from file_transfer.config import SOURCE_ROOT, TARGET_ROOT, CATEGORY
+from file_transfer.watch.watcher import start_watching, stop_watching
 from file_transfer.ui.tray import TrayApp
-from file_transfer.watch.watcher import AppHandler, observer
 
-# ========= initialize logger object for logging ========= #
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
@@ -27,35 +29,13 @@ logging.basicConfig(
 )
 
 
-# ========= watcher helper ========= #
-def stop_watcher() -> None:
-    """
-    Stop watchdog observer if it is currently running.
-    """
-    if observer.is_alive():
-        observer.stop()
-
-
 # ========= start watcher and tray app ========= #
 if __name__ == "__main__":
-    # Create our custom watchdog event handler.
-    handler = AppHandler(SOURCE_ROOT, TARGET_ROOT)
+    # Start watching source (schedules, transfers existing files, starts thread).
+    observer = start_watching(SOURCE_ROOT, TARGET_ROOT)
 
-    # Watch source root, including all category subfolders.
-    observer.schedule(
-        event_handler=handler,
-        path=SOURCE_ROOT,
-        recursive=True,
-    )
-
-    # Transfer existing files once when app starts.
-    handler.initial_transfer()
-
-    # Start watching for new files.
-    observer.start()
-
-    # Start tray app.
-    tray_app = TrayApp(SOURCE_ROOT, CATEGORY, on_exit=stop_watcher)
+    # Start tray app. On exit, stop the watcher.
+    tray_app = TrayApp(SOURCE_ROOT, CATEGORY, on_exit=lambda: stop_watching(observer))
 
     def handle_ctrl_c(signum, frame) -> None:
         """
@@ -77,5 +57,4 @@ if __name__ == "__main__":
         tray_app.request_exit()
 
     finally:
-        stop_watcher()
-        observer.join()
+        stop_watching(observer)

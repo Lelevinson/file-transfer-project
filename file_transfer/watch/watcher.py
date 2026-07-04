@@ -1,8 +1,17 @@
+"""
+Folder watching.
+
+Watches the source folder with watchdog and reacts to newly created files.
+Also provides start_watching() / stop_watching() so the entry point can
+control the observer without touching its internals.
+"""
+
 import pathlib
 import time
 import logging
 
 from watchdog.observers import Observer
+from watchdog.observers.api import BaseObserver
 from watchdog.events import FileSystemEventHandler
 
 from file_transfer.core.transfer_service import transfer_folder
@@ -12,21 +21,29 @@ logger = logging.getLogger(__name__)
 
 class Validator:
     """
-    Receive: [FileSystemEventHandler event object],
-             [pathlib.Path objects]
-    Use For: [Validate if it is a newly created file and not folder],
-             [Validate if the file is done transferring to the source folder]
-    Return: [None],
-            [None]
+    Validate watchdog events and file readiness.
+
+    Use for:
+    - checking a new event is a file, not a folder
+    - checking a file has finished being written before transfer
     """
 
     @staticmethod
     def validate_path(source_path: FileSystemEventHandler) -> None:
+        """
+        Raise an error if the event is a folder instead of a file.
+        """
         if source_path.is_directory:
             raise IsADirectoryError(f"You just created a folder, not a file!")
 
     @staticmethod
     def validate_file(source_file: pathlib.Path) -> None:
+        """
+        Wait until the file has finished being written.
+
+        Checks the file size every few seconds; when it stops changing the
+        file is ready. Raises TimeoutError if it never settles.
+        """
         timer = 0
 
         while timer <= 60:
@@ -53,14 +70,15 @@ class AppHandler(FileSystemEventHandler):
 
     def initial_transfer(self) -> None:
         """
-        use for initial transfer (when program start at the very first time)
+        Transfer files that already exist, once, when the app first starts.
         """
         for folder in self._path_sub_folder:
             transfer_folder(folder.name, self._source, self._target)
 
     def on_created(self, event) -> None:
         """
-        on-created event handler that will be triggered everytime there is/are new file(s) in sub-folder(s)
+        Handle a watchdog "file created" event: validate it, wait for the
+        file to be ready, then transfer its folder to the target.
         """
         # check if the newly created is a file and not a folder
         # there is also similar method in reader, but this one is to make sure that the validate_file method safe (since we'll use st_size)
@@ -85,4 +103,34 @@ class AppHandler(FileSystemEventHandler):
         transfer_folder(folder_name, self._source, self._target)
 
 
-observer = Observer()
+def start_watching(source_root: str, target_root: str) -> BaseObserver:
+    """
+    Start watching the source folder for new files.
+
+    Does the full startup sequence so the entry point does not have to:
+    - build the event handler
+    - watch source root and all its subfolders (recursive=True)
+    - transfer files that already exist, once
+    - start the observer thread
+
+    Return: the running Observer, so the caller can stop it later.
+    """
+    handler = AppHandler(source_root, target_root)
+
+    observer = Observer()
+    observer.schedule(handler, path=source_root, recursive=True)
+
+    # Transfer existing files once when app starts.
+    handler.initial_transfer()
+
+    observer.start()
+    return observer
+
+
+def stop_watching(observer: BaseObserver) -> None:
+    """
+    Stop the observer if it is running, then wait for its thread to finish.
+    """
+    if observer.is_alive():
+        observer.stop()
+    observer.join()
