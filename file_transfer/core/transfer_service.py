@@ -3,8 +3,8 @@ import pathlib
 import logging
 
 # own packages
-from reader import Reader
-from transfer import Transfer
+from file_transfer.core.source_reader import Reader
+from file_transfer.core.file_ops import Transfer
 
 # ========= app own logger object ========= #
 logger = logging.getLogger(__name__)

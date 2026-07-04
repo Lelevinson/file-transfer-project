@@ -5,7 +5,7 @@ import logging
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from app import transfer_folder
+from file_transfer.core.transfer_service import transfer_folder
 
 logger = logging.getLogger(__name__)
 

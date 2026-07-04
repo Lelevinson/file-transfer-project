@@ -7,7 +7,7 @@ TARGET_ROOT = "D:\\安法\\project\\mock-data-target"
 # SELECTED_FOLDER = "體組成"
 SELECTED_FOLDER = ""
 
-FOLDER_NAMES = [
+CATEGORY = [
     "體組成",
     "檢驗紀錄",
     "醫院光學影像",
@@ -18,7 +18,3 @@ FOLDER_NAMES = [
     "其他",
     "營養衛教",
 ]
-
-# Old names, kept so your older code/notes still make sense.
-SOURCE_LOCATION = SOURCE_ROOT
-TARGET_LOCATION = TARGET_ROOT

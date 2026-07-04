@@ -1,7 +1,7 @@
 import shutil
 import pathlib
 import hashlib
-from utils import *
+from file_transfer.utils import *
 
 
 class Validator:
