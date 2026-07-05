@@ -9,12 +9,14 @@ control the observer without touching its internals.
 import pathlib
 import time
 import logging
+from shutil import rmtree, move
+from collections.abc import Callable
 
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
 from watchdog.events import FileSystemEventHandler
 
-from file_transfer.core.transfer_service import transfer_folder
+from file_transfer.core.transfer_service import process_folder
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +41,19 @@ class Validator:
     @staticmethod
     def validate_file(source_file: pathlib.Path) -> None:
         """
-        Wait until the file has finished being written.
+        1. Check if the file still exist or not
+
+        Since folders creation make watchdog event assigment unpredictable,
+        it might be removed already in previous events.
+
+        2. Wait until the file has finished being written.
 
         Checks the file size every few seconds; when it stops changing the
         file is ready. Raises TimeoutError if it never settles.
         """
+        if not source_file.exists():
+            raise FileNotFoundError("Your file has been cleaned!")
+
         timer = 0
 
         while timer <= 60:
@@ -60,26 +70,47 @@ class Validator:
 
 
 class AppHandler(FileSystemEventHandler):
-    def __init__(self, source_root: str, target_root: str):
-        # save all the available sub-folders in the source folder
+    def __init__(
+        self,
+        source_root: str,
+        target_root: str,
+        fail_root: str,
+        category: list[str],
+        display_notification: Callable[[str, str, str], None],
+    ):
+        # save all the available users folders
+        self._category = category
         self._source = pathlib.Path(source_root)
         self._target = pathlib.Path(target_root)
-        self._path_sub_folder = [
-            folder for folder in self._source.iterdir() if folder.is_dir()
-        ]
+        self._fail = pathlib.Path(fail_root)
+        self._users = [user for user in self._source.iterdir() if user.is_dir()]
+        self._display_notification = display_notification
 
-    def initial_transfer(self) -> None:
-        """
-        Transfer files that already exist, once, when the app first starts.
-        """
-        for folder in self._path_sub_folder:
-            transfer_folder(folder.name, self._source, self._target)
+    # def initial_transfer(self) -> None:
+    #     """
+    #     Transfer files that already exist, once, when the app first starts.
+    #     """
+    #     for user_id in self._users:
+    #         for cat in self._category:
+    #             process_folder(
+    #                 self._source,
+    #                 self._target,
+    #                 user_id.name,
+    #                 cat,
+    #             )
 
     def on_created(self, event) -> None:
         """
         Handle a watchdog "file created" event: validate it, wait for the
         file to be ready, then transfer its folder to the target.
         """
+        # events assigned by watchdog to a complex folders are inconsitent
+        # if we create say user_id/category/file, we will have 6 total events (NOT 1)
+        # but only 2 possible cases:
+        # - if it is folders (user_id/ and user_id/category)
+        # - and if it is a file (user_id/category/file)
+        # we must handle these
+
         # check if the newly created is a file and not a folder
         # there is also similar method in reader, but this one is to make sure that the validate_file method safe (since we'll use st_size)
         try:
@@ -94,16 +125,71 @@ class AppHandler(FileSystemEventHandler):
         # check for file readiness
         try:
             Validator.validate_file(source_file)
+        except FileNotFoundError as error:
+            logger.error(f"Watcher Failed: {error}")
+            return
         except TimeoutError as error:
             logger.error(f"Watcher Failed: {error}")
             return
 
-        # get the folder name of the current path that triggered on_created
-        folder_name = source_file.parent.name
-        transfer_folder(folder_name, self._source, self._target)
+        # get the 'category' and 'user id' parts of the path that triggered on_created
+        try:
+            category = source_file.parent.name
+            user_id = source_file.parent.parent.name
+            rejected_file_list = process_folder(
+                self._source,
+                self._target,
+                user_id,
+                category,
+            )
+        except FileNotFoundError as error:
+            # non-registered user: remove the whole bogus user folder from source,
+            # not just the category (otherwise the empty user folder lingers)
+            wrong_user_folder = self._source / user_id
+            rmtree(wrong_user_folder)
+            self._display_notification(
+                "Transfer Failed!",
+                "Transfer File",
+                "You inputted a non-registered User ID",
+            )
+            logger.error(
+                f"User ID in target_folder not found! Cleaning up file in the source_folder"
+            )
+            return
+
+        # move policy-rejected files out to the fail folder
+        # (fail folder is OUTSIDE source, so moving here does NOT re-trigger watchdog)
+        if rejected_file_list:
+            fail_location = self._fail / user_id / category
+            fail_location.mkdir(parents=True, exist_ok=True)
+
+            for file in rejected_file_list:
+                # shutil.move errors if the destination already exists, so find a
+                # free name first (report.jpg -> report_1.jpg -> report_2.jpg ...)
+                destination = fail_location / file.name
+                counter = 1
+                while destination.exists():
+                    destination = fail_location / f"{file.stem}_{counter}{file.suffix}"
+                    counter += 1
+                move(str(file), str(destination))
+
+            logger.info(
+                f"Moved {len(rejected_file_list)} rejected file(s) to fail folder: {user_id}/{category}"
+            )
+            self._display_notification(
+                "Some File(s) Rejected!",
+                "Transfer File",
+                f"{len(rejected_file_list)} file(s) had disallowed extension(s)",
+            )
 
 
-def start_watching(source_root: str, target_root: str) -> BaseObserver:
+def start_watching(
+    source_root: str,
+    target_root: str,
+    fail_root: str,
+    category: list[str],
+    display_notification: Callable[[str, str, str], None],
+) -> BaseObserver:
     """
     Start watching the source folder for new files.
 
@@ -115,13 +201,15 @@ def start_watching(source_root: str, target_root: str) -> BaseObserver:
 
     Return: the running Observer, so the caller can stop it later.
     """
-    handler = AppHandler(source_root, target_root)
+    handler = AppHandler(
+        source_root, target_root, fail_root, category, display_notification
+    )
 
     observer = Observer()
     observer.schedule(handler, path=source_root, recursive=True)
 
     # Transfer existing files once when app starts.
-    handler.initial_transfer()
+    # handler.initial_transfer()
 
     observer.start()
     return observer

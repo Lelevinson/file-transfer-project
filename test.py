@@ -1,13 +1,17 @@
-import logging
 import time
-import pathlib
+from pystray import Icon
+from PIL import Image
 
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+# 1) an image, so the tray icon is actually visible
+image = Image.new("RGB", (64, 64), (0, 120, 220))
 
-from file_transfer.config import SOURCE_ROOT
-
-test = pathlib.Path(SOURCE_ROOT)
-
-for x in test.iterdir():
-    print(x)
+notify = Icon(name="test_notif", icon=image)
+notify.run_detached()
+time.sleep(5)
+notify.notify(message="Test", title="Notification")
+try:
+    while True:
+        time.sleep(5)
+except KeyboardInterrupt:
+    notify.remove_notification()
+    notify.stop()

@@ -15,7 +15,7 @@ import logging
 import signal
 
 # own modules
-from file_transfer.config import SOURCE_ROOT, TARGET_ROOT, CATEGORY
+from file_transfer.config import SOURCE_ROOT, TARGET_ROOT, FAIL_ROOT, CATEGORY
 from file_transfer.watch.watcher import start_watching, stop_watching
 from file_transfer.ui.tray import TrayApp
 
@@ -31,11 +31,13 @@ logging.basicConfig(
 
 # ========= start watcher and tray app ========= #
 if __name__ == "__main__":
-    # Start watching source (schedules, transfers existing files, starts thread).
-    observer = start_watching(SOURCE_ROOT, TARGET_ROOT)
-
     # Start tray app. On exit, stop the watcher.
     tray_app = TrayApp(SOURCE_ROOT, CATEGORY, on_exit=lambda: stop_watching(observer))
+
+    # Start watching source (schedules, transfers existing files, starts thread).
+    observer = start_watching(
+        SOURCE_ROOT, TARGET_ROOT, FAIL_ROOT, CATEGORY, tray_app.display_notification
+    )
 
     def handle_ctrl_c(signum, frame) -> None:
         """

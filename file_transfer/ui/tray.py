@@ -150,24 +150,39 @@ class TrayApp:
         """
         Ask user for a file, then copy it into source/category_name.
 
+        After asking for file, input the User ID
+
         Watchdog will see this copied file and transfer it to the target folder.
         """
         selected_file = self._gui.select_file()
-
         if selected_file is None:
             return
 
+        user_id = self._gui.input_user()
+        if user_id is None:
+            return
+
+        user_category_folder = f"{user_id}/{category_name}"
+
         try:
-            copied_file = self._uploader.copy_file_to_category(
+            copied_file = self._uploader.copy_file_to_user_category(
                 selected_file,
+                user_id,
                 category_name,
             )
-            logger.info(f"Tray upload copied file to source folder: {copied_file}")
-            self._gui.show_message("Upload File", f"File copied to {category_name}")
+            logger.info(f"Tray app copied file to source folder: {copied_file}")
+            self.display_notification(
+                f"Preparing for transfer",
+                "Copy File",
+            )
 
         except OSError as error:
-            logger.error(f"Tray upload failed: {error}")
-            self._gui.show_message("Upload Failed", str(error), is_error=True)
+            logger.error(f"Tray app copy failed: {error}")
+            self.display_notification(
+                f"Failed copying file to {user_category_folder}, please check logs",
+                "Copy File",
+                str(error),
+            )
 
     # ========= action: open log ========= #
     def open_log(self, icon, item) -> None:
@@ -187,11 +202,7 @@ class TrayApp:
         log_path = pathlib.Path("logs/app.log").resolve()
 
         if not log_path.exists():
-            self._gui.show_message(
-                "Open Log",
-                "app.log does not exist yet.",
-                is_error=True,
-            )
+            self.display_notification("Log file does not exist yet!", "Log File")
             return
 
         os.startfile(log_path)
@@ -226,3 +237,16 @@ class TrayApp:
 
         self._icon.stop()
         self._gui.stop()
+
+    # ========= utils: notification ========= #
+    def display_notification(
+        self, notif_message: str, notif_title: str, error: str = ""
+    ) -> None:
+        """
+        Display toast-style notification (bottom-right in Windows)
+        """
+        if error == "":
+            self._icon.notify(message=notif_message, title=notif_title)
+        else:
+            error_message = f"{notif_message} Error: {error}"
+            self._icon.notify(message=error_message, title=notif_title)

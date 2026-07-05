@@ -12,7 +12,7 @@ import logging
 import pathlib
 import queue
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, simpledialog
 
 logger = logging.getLogger(__name__)
 
@@ -83,18 +83,22 @@ class GuiHelper:
 
         return pathlib.Path(selected_file)
 
-    def show_message(self, title: str, message: str, is_error: bool = False) -> None:
+    def input_user(self) -> str | None:
         """
-        Show small popup message.
+        Take input of a User ID
 
-        Use:
-        - messagebox.showinfo for normal message
-        - messagebox.showerror for error message
+        Return:
+        - String of the inputted User ID
         """
-        if is_error:
-            messagebox.showerror(title, message, parent=self._root)
-        else:
-            messagebox.showinfo(title, message, parent=self._root)
+
+        user_id = simpledialog.askstring(
+            parent=self._root, title="User ID", prompt="Please Input The User's ID"
+        )
+
+        if user_id == "":
+            return None
+
+        return user_id
 
     def _process_gui_tasks(self) -> None:
         """

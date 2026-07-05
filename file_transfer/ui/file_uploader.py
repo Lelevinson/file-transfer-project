@@ -22,26 +22,26 @@ class FileUploader:
     def __init__(self, source_root: str):
         self._source = pathlib.Path(source_root)
 
-    def copy_file_to_category(
-        self, selected_file: pathlib.Path, category_name: str
+    def copy_file_to_user_category(
+        self, selected_file: pathlib.Path, user_id: str, category_name: str
     ) -> pathlib.Path:
         """
-        Copy selected file into source/category folder.
+        Copy selected file into source/user_id/category folder.
 
         Return:
-        - final copied file path
+        - final copied file path (source path that will trigger watchdog)
         """
-        category_folder = self._source / category_name
-        category_folder.mkdir(parents=True, exist_ok=True)
+        user_category_folder = self._source / user_id / category_name
+        user_category_folder.mkdir(parents=True, exist_ok=True)
 
-        target_file = category_folder / selected_file.name
-        target_file = self._get_available_path(target_file)
+        target_source_file = user_category_folder / selected_file.name
+        target_source_file = self._get_available_path(target_source_file)
 
         # Use copy2 instead of move.
         # User's original file should stay where they selected it from.
-        shutil.copy2(selected_file, target_file)
+        shutil.copy2(selected_file, target_source_file)
 
-        return target_file
+        return target_source_file
 
     def _get_available_path(self, file_path: pathlib.Path) -> pathlib.Path:
         """

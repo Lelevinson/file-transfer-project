@@ -6,74 +6,84 @@ files in a category folder from the source to the matching target folder.
 This is what the watcher calls for each folder.
 """
 
-# python/pip packages
 import pathlib
 import logging
 
-# own packages
 from file_transfer.core.source_reader import Reader
-from file_transfer.core.file_ops import Transfer
+from file_transfer.core.file_mover import Transfer
+from file_transfer.core.policy_filter import filter_by_policy
 
 # ========= app own logger object ========= #
 logger = logging.getLogger(__name__)
 
 
 # ========= folder transfer logic ========= #
-def transfer_folder(
-    folder_name: str, source_root: pathlib.Path, target_root: pathlib.Path
-) -> None:
-    source_location = pathlib.Path(source_root) / folder_name
-    target_location = pathlib.Path(target_root) / folder_name
+def process_folder(
+    source_root: pathlib.Path, target_root: pathlib.Path, user_id: str, category: str
+) -> list[pathlib.Path] | None:
+    source_location = pathlib.Path(source_root) / user_id / category
+    target_location = pathlib.Path(target_root) / user_id / category
 
-    logger.info(f"Start transfer folder: {folder_name}")
+    user_folder = f"{user_id}/{category}"
 
-    ### to GET the list of files in the source subfolder
+    logger.info(f"Start transfer folder: {user_folder}")
+
+    ### to GET the list of files in each user's subfolder categories
     try:
         path = Reader(str(source_location))
         file_list = path.get_file()
-        logger.info(f"Reader Succeed! Read {len(file_list)} file(s) from {folder_name}")
+        allowed_file_list, rejected_file_list = filter_by_policy(file_list)
+        logger.info(
+            f"Reader Succeed! Read {len(file_list)} file(s) from {user_folder}\nAllowed Files: {[*allowed_file_list]}\nRejected Files: {[*rejected_file_list]}"
+        )
     except FileNotFoundError as error:
-        logger.error(f"Reader Failed [{folder_name}]: {error}")
-        print(f"Reader Failed [{folder_name}]: File Not Found")
+        logger.error(f"Reader Failed [{user_folder}]: {error}")
+        print(f"Reader Failed [{user_folder}]: File Not Found")
         return
     except NotADirectoryError as error:
-        logger.error(f"Reader Failed [{folder_name}]: {error}")
-        print(f"Reader Failed [{folder_name}]: Not A Directory")
+        logger.error(f"Reader Failed [{user_folder}]: {error}")
+        print(f"Reader Failed [{user_folder}]: Not A Directory")
         return
     except PermissionError as error:
         logger.error(
-            f"Reader Failed [{folder_name}]: Permission to access denied! \nMessage: {error}"
+            f"Reader Failed [{user_folder}]: Permission to access denied! \nMessage: {error}"
         )
-        print(f"Reader Failed [{folder_name}]: Permission Denied")
+        print(f"Reader Failed [{user_folder}]: Permission Denied")
         return
     except OSError as error:
-        logger.error(f"Reader Failed [{folder_name}]: OS error! \nMessage: {error}")
-        print(f"Reader Failed [{folder_name}]: OS Error")
+        logger.error(f"Reader Failed [{user_folder}]: OS error! \nMessage: {error}")
+        print(f"Reader Failed [{user_folder}]: OS Error")
         return
 
     ### to TRANSFER the files in the list to target subfolder
     try:
-        Transfer.transfer_file(file_list, str(target_location))
+        Transfer.transfer_file(allowed_file_list, str(target_location))
         logger.info(
-            f"Transfer Succeed! Transferred {len(file_list)} file(s) to {folder_name}"
+            f"Transfer Succeed! Transferred {len(allowed_file_list)} allowed file(s) to {user_folder}\nFiles: {[*allowed_file_list]}"
         )  # if source and target hash list are different then will already throw error
     except FileNotFoundError as error:
-        logger.error(f"Transfer Failed [{folder_name}]: {error}")
-        print(f"Transfer Failed [{folder_name}]: Target File Not Found")
-        return
+        print(f"Transfer Failed [{user_folder}]: Target File Not Found")
+        raise  # SPECIAL CASE if path does not exist, meaning inputted User ID is wrong
     except NotADirectoryError as error:
-        logger.error(f"Transfer Failed [{folder_name}]: {error}")
-        print(f"Transfer Failed [{folder_name}]: Target Not A Directory")
+        logger.error(f"Transfer Failed [{user_folder}]: {error}")
+        print(f"Transfer Failed [{user_folder}]: Target Not A Directory")
         return
     except PermissionError as error:
         logger.error(
-            f"Transfer Failed [{folder_name}]: Permission to access denied! \nMessage: {error}"
+            f"Transfer Failed [{user_folder}]: Permission to access denied! \nMessage: {error}"
         )
-        print(f"Transfer Failed [{folder_name}]: Permission Denied")
+        print(f"Transfer Failed [{user_folder}]: Permission Denied")
         return
     except OSError as error:
-        logger.error(f"Transfer Failed [{folder_name}]: OS error! \nMessage: {error}")
-        print(f"Transfer Failed [{folder_name}]: OS Error")
+        logger.error(f"Transfer Failed [{user_folder}]: OS error! \nMessage: {error}")
+        print(f"Transfer Failed [{user_folder}]: OS Error")
         return
 
-    print(f"Transfer Succeed: {folder_name} ({len(file_list)} file(s))")
+    print(
+        f"Folder processing done {user_folder}: Transferred {len(allowed_file_list)} allowed file(s) and Rejected {len(rejected_file_list)} file(s)"
+    )
+
+    if rejected_file_list:
+        return rejected_file_list
+    else:
+        return None
