@@ -1,5 +1,8 @@
-.venv
+.venv*
 __pycache__
 
 # generated log files (keep the logs/ folder via logs/.gitkeep)
 logs/*.log
+build/
+dist/
+*.spec
