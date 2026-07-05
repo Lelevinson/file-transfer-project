@@ -36,7 +36,12 @@ if __name__ == "__main__":
 
     # Start watching source (schedules, transfers existing files, starts thread).
     observer = start_watching(
-        SOURCE_ROOT, TARGET_ROOT, FAIL_ROOT, CATEGORY, tray_app.display_error
+        SOURCE_ROOT,
+        TARGET_ROOT,
+        FAIL_ROOT,
+        CATEGORY,
+        tray_app.display_notification,
+        tray_app.display_error,
     )
 
     def handle_ctrl_c(signum, frame) -> None:

@@ -76,6 +76,7 @@ class AppHandler(FileSystemEventHandler):
         target_root: str,
         fail_root: str,
         category: list[str],
+        display_notification: Callable[[str, str, str], None],
         display_error: Callable[[str, str], None],
     ):
         # save all the available users folders
@@ -84,6 +85,7 @@ class AppHandler(FileSystemEventHandler):
         self._target = pathlib.Path(target_root)
         self._fail = pathlib.Path(fail_root)
         self._users = [user for user in self._source.iterdir() if user.is_dir()]
+        self._display_notification = display_notification
         self._display_error = display_error
 
     # def initial_transfer(self) -> None:
@@ -136,7 +138,7 @@ class AppHandler(FileSystemEventHandler):
         try:
             category = source_file.parent.name
             user_id = source_file.parent.parent.name
-            rejected_file_list = process_folder(
+            result = process_folder(
                 self._source,
                 self._target,
                 user_id,
@@ -155,6 +157,19 @@ class AppHandler(FileSystemEventHandler):
                 f"User ID in target_folder not found! Cleaning up file in the source_folder"
             )
             return
+
+        # a reader/transfer failure inside process_folder returns None (already logged)
+        if result is None:
+            return
+
+        transferred_file_list, rejected_file_list = result
+
+        # toast when files actually landed in the target
+        if transferred_file_list:
+            self._display_notification(
+                f"{len(transferred_file_list)} file(s) transferred to {user_id}/{category}",
+                "Transfer Complete",
+            )
 
         # move policy-rejected files out to the fail folder
         # (fail folder is OUTSIDE source, so moving here does NOT re-trigger watchdog)
@@ -186,6 +201,7 @@ def start_watching(
     target_root: str,
     fail_root: str,
     category: list[str],
+    display_notification: Callable[[str, str, str], None],
     display_error: Callable[[str, str], None],
 ) -> BaseObserver:
     """
@@ -199,7 +215,9 @@ def start_watching(
 
     Return: the running Observer, so the caller can stop it later.
     """
-    handler = AppHandler(source_root, target_root, fail_root, category, display_error)
+    handler = AppHandler(
+        source_root, target_root, fail_root, category, display_notification, display_error
+    )
 
     observer = Observer()
     observer.schedule(handler, path=source_root, recursive=True)

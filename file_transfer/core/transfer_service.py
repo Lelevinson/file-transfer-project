@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # ========= folder transfer logic ========= #
 def process_folder(
     source_root: pathlib.Path, target_root: pathlib.Path, user_id: str, category: str
-) -> list[pathlib.Path] | None:
+) -> tuple[list[pathlib.Path], list[pathlib.Path]] | None:
     source_location = pathlib.Path(source_root) / user_id / category
     target_location = pathlib.Path(target_root) / user_id / category
 
@@ -83,7 +83,4 @@ def process_folder(
         f"Folder processing done {user_folder}: Transferred {len(allowed_file_list)} allowed file(s) and Rejected {len(rejected_file_list)} file(s)"
     )
 
-    if rejected_file_list:
-        return rejected_file_list
-    else:
-        return None
+    return allowed_file_list, rejected_file_list
