@@ -76,7 +76,7 @@ class AppHandler(FileSystemEventHandler):
         target_root: str,
         fail_root: str,
         category: list[str],
-        display_notification: Callable[[str, str, str], None],
+        display_error: Callable[[str, str], None],
     ):
         # save all the available users folders
         self._category = category
@@ -84,7 +84,7 @@ class AppHandler(FileSystemEventHandler):
         self._target = pathlib.Path(target_root)
         self._fail = pathlib.Path(fail_root)
         self._users = [user for user in self._source.iterdir() if user.is_dir()]
-        self._display_notification = display_notification
+        self._display_error = display_error
 
     # def initial_transfer(self) -> None:
     #     """
@@ -147,10 +147,9 @@ class AppHandler(FileSystemEventHandler):
             # not just the category (otherwise the empty user folder lingers)
             wrong_user_folder = self._source / user_id
             rmtree(wrong_user_folder)
-            self._display_notification(
-                "Transfer Failed!",
-                "Transfer File",
-                "You inputted a non-registered User ID",
+            self._display_error(
+                "Transfer Failed",
+                "You uploaded a file for a non-registered User ID.",
             )
             logger.error(
                 f"User ID in target_folder not found! Cleaning up file in the source_folder"
@@ -176,10 +175,9 @@ class AppHandler(FileSystemEventHandler):
             logger.info(
                 f"Moved {len(rejected_file_list)} rejected file(s) to fail folder: {user_id}/{category}"
             )
-            self._display_notification(
-                "Some File(s) Rejected!",
-                "Transfer File",
-                f"{len(rejected_file_list)} file(s) had disallowed extension(s)",
+            self._display_error(
+                "File(s) Rejected",
+                f"{len(rejected_file_list)} file(s) had a disallowed file extension and were not transferred. Check {fail_location} to see that file(s)",
             )
 
 
@@ -188,7 +186,7 @@ def start_watching(
     target_root: str,
     fail_root: str,
     category: list[str],
-    display_notification: Callable[[str, str, str], None],
+    display_error: Callable[[str, str], None],
 ) -> BaseObserver:
     """
     Start watching the source folder for new files.
@@ -201,9 +199,7 @@ def start_watching(
 
     Return: the running Observer, so the caller can stop it later.
     """
-    handler = AppHandler(
-        source_root, target_root, fail_root, category, display_notification
-    )
+    handler = AppHandler(source_root, target_root, fail_root, category, display_error)
 
     observer = Observer()
     observer.schedule(handler, path=source_root, recursive=True)

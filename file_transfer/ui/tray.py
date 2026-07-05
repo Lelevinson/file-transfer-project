@@ -178,10 +178,10 @@ class TrayApp:
 
         except OSError as error:
             logger.error(f"Tray app copy failed: {error}")
-            self.display_notification(
-                f"Failed copying file to {user_category_folder}, please check logs",
-                "Copy File",
-                str(error),
+            self._gui.show_message(
+                "Copy Failed",
+                f"Failed to copy the file to {user_category_folder}. Please check the logs.",
+                is_error=True,
             )
 
     # ========= action: open log ========= #
@@ -202,7 +202,9 @@ class TrayApp:
         log_path = pathlib.Path("logs/app.log").resolve()
 
         if not log_path.exists():
-            self.display_notification("Log file does not exist yet!", "Log File")
+            self._gui.show_message(
+                "Log File", "The log file does not exist yet.", is_error=False
+            )
             return
 
         os.startfile(log_path)
@@ -243,10 +245,23 @@ class TrayApp:
         self, notif_message: str, notif_title: str, error: str = ""
     ) -> None:
         """
-        Display toast-style notification (bottom-right in Windows)
+        Display toast-style notification (bottom-right in Windows) for progresses
         """
         if error == "":
             self._icon.notify(message=notif_message, title=notif_title)
         else:
             error_message = f"{notif_message} Error: {error}"
             self._icon.notify(message=error_message, title=notif_title)
+
+    # ========= utils: error popup ========= #
+    def display_error(self, title: str, message: str) -> None:
+        """
+        Display a modal error popup that must be clicked to dismiss.
+
+        Safe to call from the watcher thread: it only schedules the work
+        onto Tkinter's loop (the queue). GuiHelper.show_message does the
+        actual display, so nothing here touches Tkinter directly.
+        """
+        self._gui.schedule_task(
+            lambda: self._gui.show_message(title, message, is_error=True)
+        )

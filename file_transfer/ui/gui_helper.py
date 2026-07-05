@@ -12,7 +12,7 @@ import logging
 import pathlib
 import queue
 import tkinter as tk
-from tkinter import filedialog, simpledialog
+from tkinter import filedialog, messagebox, simpledialog
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +99,18 @@ class GuiHelper:
             return None
 
         return user_id
+
+    def show_message(self, title: str, message: str, is_error: bool = False) -> None:
+        """
+        Show a modal popup box (must be clicked to dismiss).
+
+        Runs on Tkinter's loop, so call it via schedule_task from other threads.
+        This is the "implementation" that TrayApp.display_error schedules.
+        """
+        if is_error:
+            messagebox.showerror(title, message, parent=self._root)
+        else:
+            messagebox.showinfo(title, message, parent=self._root)
 
     def _process_gui_tasks(self) -> None:
         """
