@@ -1,0 +1,18 @@
+{
+    "source_root": "D:/安法/project/mock-data-source",
+    "target_root": "D:/安法/project/mock-data-target",
+    "fail_root": "D:/安法/project/mock-data-fail",
+    "allowed_ext": [".pdf", ".txt", ".docx"],
+    "selected_folder": "",
+    "category": [
+        "體組成",
+        "檢驗紀錄",
+        "醫院光學影像",
+        "會診記錄",
+        "外院資料",
+        "過敏報告",
+        "看診紀錄",
+        "其他",
+        "營養衛教"
+    ]
+}

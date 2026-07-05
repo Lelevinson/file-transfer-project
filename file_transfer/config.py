@@ -1,29 +1,37 @@
 """
 App configuration.
 
-The settings the app reads at startup: where files come from (source root),
-where they go (target root), and the list of category folders.
+Settings are loaded from config.json (sitting next to the app) instead of being
+hardcoded here, so paths and options can be edited without touching the code.
+This module reads that file once at startup and exposes the same names the rest
+of the app imports -- so nothing else needs to change.
+
+Where config.json is looked for:
+- normal run (python -m file_transfer): next to this file
+- packaged .exe (PyInstaller): next to the executable, so users can edit it
 """
 
-SOURCE_ROOT = "D:\\安法\\project\\mock-data-source"
-TARGET_ROOT = "D:\\安法\\project\\mock-data-target"
-FAIL_ROOT = "D:\\安法\\project\\mock-data-fail"
+import sys
+import json
+import pathlib
 
-ALLOWED_EXT = [".pdf", ".txt", ".docx"]
+# Decide where to look for config.json.
+if getattr(sys, "frozen", False):
+    # running as a bundled .exe -> look next to the executable (user-editable)
+    _base_dir = pathlib.Path(sys.executable).parent
+else:
+    # running from source -> look next to this config.py
+    _base_dir = pathlib.Path(__file__).parent
 
-# If this is empty, the program will transfer every folder in FOLDER_NAMES.
-# If only want to test one folder, put the folder name here, for example:
-# SELECTED_FOLDER = "體組成"
-SELECTED_FOLDER = ""
+_config_path = _base_dir / "config.json"
 
-CATEGORY = [
-    "體組成",
-    "檢驗紀錄",
-    "醫院光學影像",
-    "會診記錄",
-    "外院資料",
-    "過敏報告",
-    "看診紀錄",
-    "其他",
-    "營養衛教",
-]
+with _config_path.open(encoding="utf-8") as _file:
+    _config = json.load(_file)
+
+# Expose the same names the rest of the app already imports.
+SOURCE_ROOT = _config["source_root"]
+TARGET_ROOT = _config["target_root"]
+FAIL_ROOT = _config["fail_root"]
+ALLOWED_EXT = _config["allowed_ext"]
+SELECTED_FOLDER = _config["selected_folder"]
+CATEGORY = _config["category"]
