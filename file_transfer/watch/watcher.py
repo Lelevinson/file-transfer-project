@@ -212,7 +212,8 @@ class AppHandler(FileSystemEventHandler):
             )
             self._display_error(
                 "File(s) Rejected",
-                f"{len(rejected_file_list)} file(s) had a disallowed file extension and were not transferred. Check {fail_location} to see that file(s)",
+                f"{len(rejected_file_list)} file(s) failed validation and were not transferred. "
+                f"Check the log (Open Log in the tray menu) for the reason, and {fail_location} to see the file(s)",
             )
 
 

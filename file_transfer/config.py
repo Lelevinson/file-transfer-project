@@ -36,6 +36,7 @@ SOURCE_ROOT = str(_base_dir / _config["source_root"])
 TARGET_ROOT = str(_base_dir / _config["target_root"])
 FAIL_ROOT = str(_base_dir / _config["fail_root"])
 ALLOWED_EXT = _config["allowed_ext"]
+MAX_FILE_MB = _config.get("max_file_mb", 50)  # .get: old config.json still works
 USER_IDS = _config.get("user_ids", [])  # DEMO: mock "registered users" (server later)
 SELECTED_FOLDER = _config["selected_folder"]
 CATEGORY = _config["category"]

@@ -3,6 +3,7 @@
     "target_root": "D:/安法/project/mock-data-target",
     "fail_root": "D:/安法/project/mock-data-fail",
     "allowed_ext": [".pdf", ".txt", ".docx", ".xlsx", ".xls"],
+    "max_file_mb": 50,
     "user_ids": ["1123501", "1123502", "1123503"],
     "selected_folder": "",
     "category": [
