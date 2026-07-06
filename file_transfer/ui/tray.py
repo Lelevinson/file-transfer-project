@@ -27,6 +27,7 @@ import pathlib
 import pystray
 
 # own modules (the small units this surface combines)
+from file_transfer.config import LOG_FILE
 from file_transfer.ui.gui_helper import GuiHelper
 from file_transfer.ui.file_uploader import FileUploader
 from file_transfer.ui.tray_icon import TrayIconBuilder
@@ -199,7 +200,7 @@ class TrayApp:
 
         This runs from Tkinter's GUI loop.
         """
-        log_path = pathlib.Path("logs/app.log").resolve()
+        log_path = pathlib.Path(LOG_FILE)
 
         if not log_path.exists():
             self._gui.show_message(

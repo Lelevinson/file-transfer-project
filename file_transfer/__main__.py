@@ -15,14 +15,14 @@ import logging
 import signal
 
 # own modules
-from file_transfer.config import SOURCE_ROOT, TARGET_ROOT, FAIL_ROOT, CATEGORY
+from file_transfer.config import SOURCE_ROOT, TARGET_ROOT, FAIL_ROOT, CATEGORY, LOG_FILE
 from file_transfer.watch.watcher import start_watching, stop_watching
 from file_transfer.ui.tray import TrayApp
 
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
-    filename="logs/app.log",
+    filename=LOG_FILE,
     level=logging.INFO,
     encoding="UTF-8",
     format="%(asctime)s [%(name)s] %(levelname)s %(message)s",

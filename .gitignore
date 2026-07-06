@@ -3,6 +3,7 @@ __pycache__
 
 # generated log files (keep the logs/ folder via logs/.gitkeep)
 logs/*.log
+*.log
 build/
 dist/
 *.spec

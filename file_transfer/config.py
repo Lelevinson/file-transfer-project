@@ -29,9 +29,19 @@ with _config_path.open(encoding="utf-8") as _file:
     _config = json.load(_file)
 
 # Expose the same names the rest of the app already imports.
-SOURCE_ROOT = _config["source_root"]
-TARGET_ROOT = _config["target_root"]
-FAIL_ROOT = _config["fail_root"]
+# Folder paths resolve relative to the app: a relative name like "source" lands
+# next to the app, while an absolute path (your dev paths) passes through
+# unchanged -- so a packaged app is self-contained wherever it is installed.
+SOURCE_ROOT = str(_base_dir / _config["source_root"])
+TARGET_ROOT = str(_base_dir / _config["target_root"])
+FAIL_ROOT = str(_base_dir / _config["fail_root"])
 ALLOWED_EXT = _config["allowed_ext"]
 SELECTED_FOLDER = _config["selected_folder"]
 CATEGORY = _config["category"]
+
+# The log file lives in the app's own logs/ folder, wherever the app is.
+LOG_FILE = str(_base_dir / "logs" / "app.log")
+
+# First-run setup: create the folders the app needs if they do not exist yet.
+for _folder in (SOURCE_ROOT, TARGET_ROOT, FAIL_ROOT, _base_dir / "logs"):
+    pathlib.Path(_folder).mkdir(parents=True, exist_ok=True)
