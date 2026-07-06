@@ -105,23 +105,21 @@ class GuiHelper:
         """
         self._task_queue.put(task)
 
-    def select_file(self) -> pathlib.Path | None:
+    def select_files(self) -> list[pathlib.Path]:
         """
-        Open a file picker dialog.
+        Open a file picker dialog that allows picking several files at once
+        (Ctrl+click or Shift+click).
 
         Return:
-        - pathlib.Path if user selected a file
-        - None if user cancelled
+        - list of pathlib.Path, one per selected file
+        - empty list if user cancelled
         """
-        selected_file = filedialog.askopenfilename(
+        selected_files = filedialog.askopenfilenames(
             parent=self._root,
-            title="Choose file to upload",
+            title="Choose file(s) to upload",
         )
 
-        if selected_file == "":
-            return None
-
-        return pathlib.Path(selected_file)
+        return [pathlib.Path(file) for file in selected_files]
 
     def input_user(self) -> str | None:
         """

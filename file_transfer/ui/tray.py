@@ -149,14 +149,14 @@ class TrayApp:
     # ========= action: upload file ========= #
     def _upload_to_category(self, category_name: str) -> None:
         """
-        Ask user for a file, then copy it into source/category_name.
+        Ask user for one or more files, then copy them into source/category_name.
 
-        After asking for file, input the User ID
+        After asking for files, input the User ID (once, for the whole batch).
 
-        Watchdog will see this copied file and transfer it to the target folder.
+        Watchdog will see the copied files and transfer them to the target folder.
         """
-        selected_file = self._gui.select_file()
-        if selected_file is None:
+        selected_files = self._gui.select_files()
+        if not selected_files:
             return
 
         user_id = self._gui.input_user()
@@ -165,23 +165,36 @@ class TrayApp:
 
         user_category_folder = f"{user_id}/{category_name}"
 
-        try:
-            copied_file = self._uploader.copy_file_to_user_category(
-                selected_file,
-                user_id,
-                category_name,
-            )
-            logger.info(f"Tray app copied file to source folder: {copied_file}")
+        copied_files = []
+        failed_files = []
+
+        # copy one by one so a single bad file does not stop the rest
+        for selected_file in selected_files:
+            try:
+                copied_file = self._uploader.copy_file_to_user_category(
+                    selected_file,
+                    user_id,
+                    category_name,
+                )
+                logger.info(f"Tray app copied file to source folder: {copied_file}")
+                copied_files.append(copied_file)
+
+            except OSError as error:
+                logger.error(f"Tray app copy failed for {selected_file.name}: {error}")
+                failed_files.append(selected_file)
+
+        if copied_files:
             self.display_notification(
-                f"Preparing for transfer",
+                f"Preparing {len(copied_files)} file(s) for transfer",
                 "Copy File",
             )
 
-        except OSError as error:
-            logger.error(f"Tray app copy failed: {error}")
+        if failed_files:
+            failed_names = ", ".join(file.name for file in failed_files)
             self._gui.show_message(
                 "Copy Failed",
-                f"Failed to copy the file to {user_category_folder}. Please check the logs.",
+                f"Failed to copy {len(failed_files)} file(s) to {user_category_folder}: "
+                f"{failed_names}. Please check the logs.",
                 is_error=True,
             )
 
