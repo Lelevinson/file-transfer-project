@@ -158,8 +158,14 @@ class AppHandler(FileSystemEventHandler):
             )
             return
 
-        # a reader/transfer failure inside process_folder returns None (already logged)
+        # a reader/transfer failure inside process_folder returns None (already logged).
+        # Tell the user instead of failing silently.
         if result is None:
+            self._display_error(
+                "Transfer Failed",
+                f"Could not transfer the file(s) for {user_id}/{category}. "
+                f"Please check the log (Open Log in the tray menu) for details.",
+            )
             return
 
         transferred_file_list, rejected_file_list = result

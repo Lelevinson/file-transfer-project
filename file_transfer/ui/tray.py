@@ -246,16 +246,17 @@ class TrayApp:
         self, notif_message: str, notif_title: str, error: str = ""
     ) -> None:
         """
-        Display a toast notification (bottom-right in Windows).
+        Display a toast notification (bottom-right on screen).
 
-        Scheduled onto Tkinter's loop via the queue, so it works even when
-        called from the watcher's background thread -- pystray's notify() is
-        unreliable when called off the main GUI thread.
+        We draw our own toast window (GuiHelper.show_toast) instead of pystray's
+        tray balloon: Windows silently drops those balloons, so they never
+        appeared. Scheduled onto Tkinter's loop via the queue, so it is safe to
+        call from the watcher's background thread.
         """
         message = notif_message if error == "" else f"{notif_message} Error: {error}"
         logger.info(f"Notification: {notif_title} - {message}")
         self._gui.schedule_task(
-            lambda: self._icon.notify(message=message, title=notif_title)
+            lambda: self._gui.show_toast(notif_title, message)
         )
 
     # ========= utils: error popup ========= #

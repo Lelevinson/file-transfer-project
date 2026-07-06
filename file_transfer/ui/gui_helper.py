@@ -12,11 +12,17 @@ import logging
 import pathlib
 import queue
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, font as tkfont, messagebox, ttk
 
 from file_transfer.config import USER_IDS
 
 logger = logging.getLogger(__name__)
+
+# ========= UI size knob ========= #
+# The app is DPI-aware (crisp text), but that makes the UI physically small on
+# high-DPI screens. This multiplies every font size. Raise it to make the whole
+# UI bigger (dialog, dropdown, buttons, error box, toast); lower it for smaller.
+UI_SCALE = 1.5
 
 
 class GuiHelper:
@@ -40,8 +46,40 @@ class GuiHelper:
         self._root.withdraw()
         self._root.attributes("-topmost", True)
 
+        # The app is DPI-aware (crisp) but that makes Tk's UI small on high-DPI
+        # screens. Enlarge every built-in font so dialogs, the dropdown, buttons
+        # and message boxes are comfortably sized. (Toast fonts scale too, below.)
+        self._enlarge_default_fonts(UI_SCALE)
+
         # Ask Tkinter to check queued GUI tasks every 100ms.
         self._root.after(100, self._process_gui_tasks)
+
+    def _enlarge_default_fonts(self, factor: float) -> None:
+        """
+        Scale Tk's built-in named fonts by `factor`.
+
+        Every standard widget (labels, buttons, combobox, message boxes) uses
+        one of these named fonts, so scaling them here resizes the whole UI in
+        one place -- no need to set a font on each widget.
+        """
+        font_names = (
+            "TkDefaultFont",
+            "TkTextFont",
+            "TkMenuFont",
+            "TkHeadingFont",
+            "TkCaptionFont",
+            "TkSmallCaptionFont",
+            "TkTooltipFont",
+            "TkIconFont",
+            "TkFixedFont",
+        )
+        for name in font_names:
+            try:
+                font = tkfont.nametofont(name)
+                font.configure(size=int(font.cget("size") * factor))
+            except tk.TclError:
+                # some named fonts may not exist on every platform -- skip them
+                continue
 
     def run(self) -> None:
         """
@@ -153,6 +191,76 @@ class GuiHelper:
             messagebox.showerror(title, message, parent=self._root)
         else:
             messagebox.showinfo(title, message, parent=self._root)
+
+    def show_toast(self, title: str, message: str, duration_ms: int = 4000) -> None:
+        """
+        Show our own small notification window (bottom-right), auto-dismissing.
+
+        We draw this ourselves instead of using pystray's tray balloon because
+        that balloon is silently dropped by Windows (Focus Assist / notification
+        settings / frozen-app quirks). This window is pure Tkinter -- we own the
+        GUI loop, so it always shows.
+
+        Runs on Tkinter's loop, so call it via schedule_task from other threads.
+        """
+        logger.info(f"Showing toast: {title} - {message}")
+
+        # Scale the toast's own fonts with the same UI knob as the rest of the UI.
+        title_size = int(10 * UI_SCALE)
+        body_size = int(9 * UI_SCALE)
+
+        toast = tk.Toplevel(self._root)
+        toast.overrideredirect(True)  # no title bar / borders -- looks like a toast
+        toast.attributes("-topmost", True)
+
+        frame = tk.Frame(toast, bg="#2b2b2b", padx=16, pady=12)
+        frame.pack(fill="both", expand=True)
+        tk.Label(
+            frame,
+            text=title,
+            bg="#2b2b2b",
+            fg="#ffffff",
+            font=("Segoe UI", title_size, "bold"),
+            anchor="w",
+            justify="left",
+        ).pack(anchor="w")
+        tk.Label(
+            frame,
+            text=message,
+            bg="#2b2b2b",
+            fg="#dddddd",
+            font=("Segoe UI", body_size),
+            anchor="w",
+            justify="left",
+            wraplength=int(300 * UI_SCALE),
+        ).pack(anchor="w", pady=(4, 0))
+
+        # Position at the fixed bottom-right corner, above the taskbar.
+        toast.update_idletasks()
+        sw = toast.winfo_screenwidth()
+        sh = toast.winfo_screenheight()
+
+        # The very FIRST toast can mis-report its size before it is fully
+        # realized (worse with DPI awareness) -- a bogus (huge) size is what
+        # shoved it into the top-left corner. If the measurement looks
+        # implausible, fall back to sensible defaults so it always lands
+        # bottom-right.
+        width = toast.winfo_reqwidth()
+        if width <= 1 or width > sw:
+            width = int(360 * UI_SCALE)
+        height = toast.winfo_reqheight()
+        if height <= 1 or height > sh:
+            height = int(90 * UI_SCALE)
+
+        margin = 20
+        taskbar = 48
+        x = sw - width - margin
+        y = sh - height - margin - taskbar
+        toast.geometry(f"+{x}+{y}")
+        toast.lift()  # force it above other windows (topmost alone can be flaky)
+
+        # Auto-close after a few seconds.
+        toast.after(duration_ms, toast.destroy)
 
     def _process_gui_tasks(self) -> None:
         """

@@ -46,7 +46,42 @@ logging.basicConfig(
 )
 
 
-# ========= start watcher and tray app ========= #
+def enable_dpi_awareness() -> None:
+    """
+    Tell Windows this app draws its own pixels at the real screen resolution.
+
+    Without this, Windows *bitmap-stretches* the whole process on a scaled
+    display (e.g. 125%/150%), which makes the file dialog, tray menu and
+    popups look blurry. Declaring DPI-awareness makes them render crisp.
+
+    Must be called BEFORE any window (Tk root, dialogs) is created.
+    Wrapped in try/except because it is Windows-only and best-effort.
+    """
+    if sys.platform != "win32":
+        return
+    import ctypes
+
+    # Try the modern "Per-Monitor v2" mode first: crisp AND it lets Windows
+    # scale native UI (the tray menu, standard dialogs) to the screen's DPI.
+    # Fall back to older modes on older Windows.
+    try:
+        # -4 = DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+        return
+    except Exception:
+        pass
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # per-monitor
+        return
+    except Exception:
+        pass
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()  # oldest, system-wide
+    except Exception:
+        logger.warning("Could not enable DPI awareness", exc_info=True)
+
+
+# ========= start watcher and tray app ========= #+
 if __name__ == "__main__":
     # DEMO ONLY: "register" the mock users by creating their target folders so
     # their transfers succeed. Remove this once the real server owns the user
@@ -54,6 +89,9 @@ if __name__ == "__main__":
     for _user in USER_IDS:
         for _cat in CATEGORY:
             pathlib.Path(TARGET_ROOT, _user, _cat).mkdir(parents=True, exist_ok=True)
+
+    # Crisp (not blurry) windows on scaled displays -- must run before Tk starts.
+    enable_dpi_awareness()
 
     # Start tray app. On exit, stop the watcher.
     tray_app = TrayApp(SOURCE_ROOT, CATEGORY, on_exit=lambda: stop_watching(observer))
