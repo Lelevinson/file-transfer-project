@@ -128,6 +128,12 @@ class GuiHelper:
             side="left", padx=4
         )
 
+        # center the dialog on screen (the old askstring did this for us)
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() - dialog.winfo_width()) // 2
+        y = (dialog.winfo_screenheight() - dialog.winfo_height()) // 2
+        dialog.geometry(f"+{x}+{y}")
+
         # 4) wait here until the dialog is closed -- this is what makes it modal
         self._root.wait_window(dialog)
 
