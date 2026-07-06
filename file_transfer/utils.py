@@ -2,13 +2,7 @@
 Small shared helpers used across the app.
 """
 
-import sys
 import pathlib
-
-
-def dd(input: any):
-    print(input)
-    sys.exit()
 
 
 # def validate_path(path: pathlib.Path) -> bool:

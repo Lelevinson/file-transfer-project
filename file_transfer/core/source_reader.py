@@ -9,9 +9,6 @@ import pathlib
 from file_transfer.utils import *
 
 
-class Testing: ...
-
-
 class Validator:
     """
     Validate a source path.
