@@ -3,6 +3,7 @@
     "target_root": "D:/安法/project/mock-data-target",
     "fail_root": "D:/安法/project/mock-data-fail",
     "allowed_ext": [".pdf", ".txt", ".docx"],
+    "user_ids": ["1123501", "1123502", "1123503"],
     "selected_folder": "",
     "category": [
         "體組成",

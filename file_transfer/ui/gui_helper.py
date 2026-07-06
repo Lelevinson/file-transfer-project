@@ -12,7 +12,9 @@ import logging
 import pathlib
 import queue
 import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog
+from tkinter import filedialog, messagebox, ttk
+
+from file_transfer.config import USER_IDS
 
 logger = logging.getLogger(__name__)
 
@@ -85,20 +87,54 @@ class GuiHelper:
 
     def input_user(self) -> str | None:
         """
-        Take input of a User ID
+        Ask for a User ID with a small custom dialog containing an editable dropdown.
 
-        Return:
-        - String of the inputted User ID
+        The user can TYPE an ID or PICK one from the known list (USER_IDS).
+        Returns the ID string, or None if cancelled or left blank.
+
+        This is a *custom* dialog (our own Toplevel window) rather than the
+        prebuilt simpledialog, because we need a dropdown inside it.
         """
+        # 1) our own little window (instead of the prebuilt askstring dialog)
+        dialog = tk.Toplevel(self._root)
+        dialog.title("User ID")
+        dialog.attributes("-topmost", True)
+        dialog.resizable(False, False)
+        dialog.grab_set()  # modal: block the rest of the app until answered
 
-        user_id = simpledialog.askstring(
-            parent=self._root, title="User ID", prompt="Please Input The User's ID"
+        tk.Label(dialog, text="Select or type the User's ID:").pack(
+            padx=12, pady=(12, 4)
         )
 
-        if user_id == "":
-            return None
+        # 2) editable combobox: the list suggests known users, typing still allowed
+        combo = ttk.Combobox(dialog, values=USER_IDS)
+        combo.pack(padx=12, pady=4)
+        combo.focus_set()
 
-        return user_id
+        # 3) a place to keep the result across the button callbacks; None = cancelled
+        result = {"user_id": None}
+
+        def on_ok():
+            result["user_id"] = combo.get()
+            dialog.destroy()
+
+        def on_cancel():
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(pady=(4, 12))
+        tk.Button(buttons, text="OK", width=8, command=on_ok).pack(side="left", padx=4)
+        tk.Button(buttons, text="Cancel", width=8, command=on_cancel).pack(
+            side="left", padx=4
+        )
+
+        # 4) wait here until the dialog is closed -- this is what makes it modal
+        self._root.wait_window(dialog)
+
+        user_id = result["user_id"]
+        if user_id is None or user_id.strip() == "":
+            return None
+        return user_id.strip()
 
     def show_message(self, title: str, message: str, is_error: bool = False) -> None:
         """

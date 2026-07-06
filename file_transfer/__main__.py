@@ -12,10 +12,18 @@ The *how* of the watcher and tray lives in its own module (watch, ui).
 
 # python/pip packages
 import logging
+import pathlib
 import signal
 
 # own modules
-from file_transfer.config import SOURCE_ROOT, TARGET_ROOT, FAIL_ROOT, CATEGORY, LOG_FILE
+from file_transfer.config import (
+    SOURCE_ROOT,
+    TARGET_ROOT,
+    FAIL_ROOT,
+    CATEGORY,
+    LOG_FILE,
+    USER_IDS,
+)
 from file_transfer.watch.watcher import start_watching, stop_watching
 from file_transfer.ui.tray import TrayApp
 
@@ -31,6 +39,13 @@ logging.basicConfig(
 
 # ========= start watcher and tray app ========= #
 if __name__ == "__main__":
+    # DEMO ONLY: "register" the mock users by creating their target folders so
+    # their transfers succeed. Remove this once the real server owns the user
+    # list and the target side becomes an API instead of local folders.
+    for _user in USER_IDS:
+        for _cat in CATEGORY:
+            pathlib.Path(TARGET_ROOT, _user, _cat).mkdir(parents=True, exist_ok=True)
+
     # Start tray app. On exit, stop the watcher.
     tray_app = TrayApp(SOURCE_ROOT, CATEGORY, on_exit=lambda: stop_watching(observer))
 
