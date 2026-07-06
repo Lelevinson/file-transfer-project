@@ -88,7 +88,7 @@ def enable_dpi_awareness() -> None:
 # ========= start watcher and tray app ========= #+
 if __name__ == "__main__":
     # DEMO ONLY: "register" the mock users by creating their target folders so
-    # their transfers succeed. Remove this once the real server owns the user
+    # their transfers succeed. Need to remove this once the real server owns the user
     # list and the target side becomes an API instead of local folders.
     for _user in USER_IDS:
         for _cat in CATEGORY:
