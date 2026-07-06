@@ -31,10 +31,14 @@ from file_transfer.ui.tray import TrayApp
 
 # In a windowed (--noconsole) build there is no console, so sys.stdout/stderr
 # are None -- redirect them to nowhere so stray print() calls don't crash.
+# encoding="utf-8" is ESSENTIAL: the default here is the OS ANSI codepage
+# (cp1252 on many machines), which cannot encode Chinese. A stray print() of a
+# Chinese folder name would then raise UnicodeEncodeError mid-transfer and kill
+# the watcher thread. utf-8 encodes anything; errors="replace" is a last resort.
 if sys.stdout is None:
-    sys.stdout = open(os.devnull, "w")
+    sys.stdout = open(os.devnull, "w", encoding="utf-8", errors="replace")
 if sys.stderr is None:
-    sys.stderr = open(os.devnull, "w")
+    sys.stderr = open(os.devnull, "w", encoding="utf-8", errors="replace")
 
 logger = logging.getLogger(__name__)
 

@@ -88,6 +88,20 @@ class AppHandler(FileSystemEventHandler):
         self._display_notification = display_notification
         self._display_error = display_error
 
+    def dispatch(self, event) -> None:
+        """
+        Catch-all wrapper around every event callback (on_created, ...).
+
+        watchdog runs this on the observer's background thread, and any uncaught
+        exception here would kill that thread SILENTLY -- the app keeps running
+        but quietly stops transferring anything. Logging and swallowing keeps the
+        watcher alive no matter what a single event hits.
+        """
+        try:
+            super().dispatch(event)
+        except Exception:
+            logger.exception("Watcher event handler crashed but was kept alive")
+
     # def initial_transfer(self) -> None:
     #     """
     #     Transfer files that already exist, once, when the app first starts.
