@@ -281,6 +281,7 @@ class TrayApp:
         onto Tkinter's loop (the queue). GuiHelper.show_message does the
         actual display, so nothing here touches Tkinter directly.
         """
+        logger.info(f"Error popup: {title} - {message}")
         self._gui.schedule_task(
             lambda: self._gui.show_message(title, message, is_error=True)
         )

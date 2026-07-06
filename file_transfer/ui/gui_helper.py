@@ -185,6 +185,7 @@ class GuiHelper:
         Runs on Tkinter's loop, so call it via schedule_task from other threads.
         This is the "implementation" that TrayApp.display_error schedules.
         """
+        logger.info(f"Showing popup: {title} - {message}")
         if is_error:
             messagebox.showerror(title, message, parent=self._root)
         else:
