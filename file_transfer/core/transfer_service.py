@@ -38,21 +38,17 @@ def process_folder(
         )
     except FileNotFoundError as error:
         logger.error(f"Reader Failed [{user_folder}]: {error}")
-        print(f"Reader Failed [{user_folder}]: File Not Found")
         return
     except NotADirectoryError as error:
         logger.error(f"Reader Failed [{user_folder}]: {error}")
-        print(f"Reader Failed [{user_folder}]: Not A Directory")
         return
     except PermissionError as error:
         logger.error(
             f"Reader Failed [{user_folder}]: Permission to access denied! \nMessage: {error}"
         )
-        print(f"Reader Failed [{user_folder}]: Permission Denied")
         return
     except OSError as error:
         logger.error(f"Reader Failed [{user_folder}]: OS error! \nMessage: {error}")
-        print(f"Reader Failed [{user_folder}]: OS Error")
         return
 
     ### to TRANSFER the files in the list to target subfolder
@@ -61,26 +57,18 @@ def process_folder(
         logger.info(
             f"Transfer Succeed! Transferred {len(allowed_file_list)} allowed file(s) to {user_folder}\nFiles: {[*allowed_file_list]}"
         )  # if source and target hash list are different then will already throw error
-    except FileNotFoundError as error:
-        print(f"Transfer Failed [{user_folder}]: Target File Not Found")
+    except FileNotFoundError:
         raise  # SPECIAL CASE if path does not exist, meaning inputted User ID is wrong
     except NotADirectoryError as error:
         logger.error(f"Transfer Failed [{user_folder}]: {error}")
-        print(f"Transfer Failed [{user_folder}]: Target Not A Directory")
         return
     except PermissionError as error:
         logger.error(
             f"Transfer Failed [{user_folder}]: Permission to access denied! \nMessage: {error}"
         )
-        print(f"Transfer Failed [{user_folder}]: Permission Denied")
         return
     except OSError as error:
         logger.error(f"Transfer Failed [{user_folder}]: OS error! \nMessage: {error}")
-        print(f"Transfer Failed [{user_folder}]: OS Error")
         return
-
-    print(
-        f"Folder processing done {user_folder}: Transferred {len(allowed_file_list)} allowed file(s) and Rejected {len(rejected_file_list)} file(s)"
-    )
 
     return allowed_file_list, rejected_file_list
