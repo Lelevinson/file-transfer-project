@@ -39,6 +39,7 @@ class GuiHelper:
     def __init__(self):
         self._is_exiting = False
         self._task_queue = queue.Queue()
+        self._active_toasts = []  # open toast windows, newest first
 
         # Tkinter needs one root window.
         # We hide it because this app mainly lives in the system tray.
@@ -195,9 +196,13 @@ class GuiHelper:
         """
         Show our own small notification window (bottom-right), auto-dismissing.
 
-        We draw this ourselves instead of using pystray's tray balloon because
+        Several toasts can be alive at once (e.g. a multi-file upload): the
+        newest takes the bottom-right corner and older ones stack upward,
+        re-packing whenever one closes. Each toast has a X to dismiss it early.
+
+        We use this instead of using pystray's tray balloon (`notify` method) because
         that balloon is silently dropped by Windows (Focus Assist / notification
-        settings / frozen-app quirks). This window is pure Tkinter -- we own the
+        settings / frozen-app quirks). This window is pure Tkinter -- owning the
         GUI loop, so it always shows.
 
         Runs on Tkinter's loop, so call it via schedule_task from other threads.
@@ -214,15 +219,38 @@ class GuiHelper:
 
         frame = tk.Frame(toast, bg="#2b2b2b", padx=16, pady=12)
         frame.pack(fill="both", expand=True)
+
+        def close_toast():
+            # runs for BOTH the X click and the auto-close timer; whichever
+            # fires second finds the toast already gone and does nothing
+            if toast in self._active_toasts:
+                self._active_toasts.remove(toast)
+                toast.destroy()
+                self._layout_toasts()
+
+        # title row: title text on the left, X close button on the right
+        title_row = tk.Frame(frame, bg="#2b2b2b")
+        title_row.pack(fill="x")
         tk.Label(
-            frame,
+            title_row,
             text=title,
             bg="#2b2b2b",
             fg="#ffffff",
             font=("Segoe UI", title_size, "bold"),
             anchor="w",
             justify="left",
-        ).pack(anchor="w")
+        ).pack(side="left")
+        close_button = tk.Label(
+            title_row,
+            text="✕",
+            bg="#2b2b2b",
+            fg="#999999",
+            font=("Segoe UI", title_size),
+            cursor="hand2",
+        )
+        close_button.pack(side="right", padx=(16, 0))
+        close_button.bind("<Button-1>", lambda event: close_toast())
+
         tk.Label(
             frame,
             text=message,
@@ -234,7 +262,6 @@ class GuiHelper:
             wraplength=int(300 * UI_SCALE),
         ).pack(anchor="w", pady=(4, 0))
 
-        # Position at the fixed bottom-right corner, above the taskbar.
         toast.update_idletasks()
         sw = toast.winfo_screenwidth()
         sh = toast.winfo_screenheight()
@@ -251,15 +278,36 @@ class GuiHelper:
         if height <= 1 or height > sh:
             height = int(90 * UI_SCALE)
 
-        margin = 20
-        taskbar = 48
-        x = sw - width - margin
-        y = sh - height - margin - taskbar
-        toast.geometry(f"+{x}+{y}")
+        # remember the measured size; _layout_toasts positions the whole stack
+        toast.toast_width = width
+        toast.toast_height = height
+        self._active_toasts.insert(0, toast)  # newest gets the corner spot
+        self._layout_toasts()
         toast.lift()  # force it above other windows (topmost alone can be flaky)
 
         # Auto-close after a few seconds.
-        toast.after(duration_ms, toast.destroy)
+        toast.after(duration_ms, close_toast)
+
+    def _layout_toasts(self) -> None:
+        """
+        Position every open toast, stacking upward from the bottom-right corner.
+
+        The first toast in the list sits in the corner (above the taskbar);
+        each following one sits directly above the previous, with a small gap.
+        Called whenever a toast appears or closes, so the stack never overlaps
+        and never leaves holes.
+        """
+        sw = self._root.winfo_screenwidth()
+        sh = self._root.winfo_screenheight()
+        margin = 20
+        taskbar = 48
+        gap = 10
+
+        y = sh - margin - taskbar
+        for toast in self._active_toasts:
+            y -= toast.toast_height
+            toast.geometry(f"+{sw - toast.toast_width - margin}+{y}")
+            y -= gap
 
     def _process_gui_tasks(self) -> None:
         """
