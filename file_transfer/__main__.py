@@ -12,8 +12,10 @@ The *how* of the watcher and tray lives in its own module (watch, ui).
 
 # python/pip packages
 import logging
+import os
 import pathlib
 import signal
+import sys
 
 # own modules
 from file_transfer.config import (
@@ -26,6 +28,13 @@ from file_transfer.config import (
 )
 from file_transfer.watch.watcher import start_watching, stop_watching
 from file_transfer.ui.tray import TrayApp
+
+# In a windowed (--noconsole) build there is no console, so sys.stdout/stderr
+# are None -- redirect them to nowhere so stray print() calls don't crash.
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
 
 logger = logging.getLogger(__name__)
 
