@@ -246,13 +246,17 @@ class TrayApp:
         self, notif_message: str, notif_title: str, error: str = ""
     ) -> None:
         """
-        Display toast-style notification (bottom-right in Windows) for progresses
+        Display a toast notification (bottom-right in Windows).
+
+        Scheduled onto Tkinter's loop via the queue, so it works even when
+        called from the watcher's background thread -- pystray's notify() is
+        unreliable when called off the main GUI thread.
         """
-        if error == "":
-            self._icon.notify(message=notif_message, title=notif_title)
-        else:
-            error_message = f"{notif_message} Error: {error}"
-            self._icon.notify(message=error_message, title=notif_title)
+        message = notif_message if error == "" else f"{notif_message} Error: {error}"
+        logger.info(f"Notification: {notif_title} - {message}")
+        self._gui.schedule_task(
+            lambda: self._icon.notify(message=message, title=notif_title)
+        )
 
     # ========= utils: error popup ========= #
     def display_error(self, title: str, message: str) -> None:
