@@ -148,6 +148,18 @@ class GuiHelper:
         combo.pack(padx=12, pady=4)
         combo.focus_set()
 
+        def filter_suggestions(event):
+            """
+            Narrow the dropdown to the IDs containing what was typed so far.
+            """
+            typed = combo.get().strip()
+            if typed:
+                combo["values"] = [uid for uid in USER_IDS if typed in uid]
+            else:
+                combo["values"] = USER_IDS
+
+        combo.bind("<KeyRelease>", filter_suggestions)
+
         # 3) a place to keep the result across the button callbacks; None = cancelled
         result = {"user_id": None}
 
