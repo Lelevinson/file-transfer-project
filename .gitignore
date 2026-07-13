@@ -11,3 +11,7 @@ installer_output/
 
 # local demo/test files for the validation demo (contains a 51 MB file)
 demo-files/
+
+# backend demo database and received files
+backend/*.db
+backend/uploads/
