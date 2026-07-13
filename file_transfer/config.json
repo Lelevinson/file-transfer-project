@@ -1,7 +1,7 @@
 {
     "source_root": "D:/安法/project/mock-data-source",
-    "target_root": "D:/安法/project/mock-data-target",
     "fail_root": "D:/安法/project/mock-data-fail",
+    "server_url": "http://127.0.0.1:5000",
     "allowed_ext": [".pdf", ".txt", ".docx", ".xlsx", ".xls"],
     "max_file_mb": 50,
     "user_ids": ["1123501", "1123502", "1123503"],

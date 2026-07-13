@@ -33,8 +33,8 @@ with _config_path.open(encoding="utf-8") as _file:
 # next to the app, while an absolute path (your dev paths) passes through
 # unchanged -- so a packaged app is self-contained wherever it is installed.
 SOURCE_ROOT = str(_base_dir / _config["source_root"])
-TARGET_ROOT = str(_base_dir / _config["target_root"])
 FAIL_ROOT = str(_base_dir / _config["fail_root"])
+SERVER_URL = _config.get("server_url", "http://127.0.0.1:5000")
 ALLOWED_EXT = _config["allowed_ext"]
 MAX_FILE_MB = _config.get("max_file_mb", 50)  # .get: old config.json still works
 USER_IDS = _config.get("user_ids", [])  # DEMO: mock "registered users" (server later)
@@ -45,5 +45,5 @@ CATEGORY = _config["category"]
 LOG_FILE = str(_base_dir / "logs" / "app.log")
 
 # First-run setup: create the folders the app needs if they do not exist yet.
-for _folder in (SOURCE_ROOT, TARGET_ROOT, FAIL_ROOT, _base_dir / "logs"):
+for _folder in (SOURCE_ROOT, FAIL_ROOT, _base_dir / "logs"):
     pathlib.Path(_folder).mkdir(parents=True, exist_ok=True)

@@ -73,7 +73,6 @@ class AppHandler(FileSystemEventHandler):
     def __init__(
         self,
         source_root: str,
-        target_root: str,
         fail_root: str,
         category: list[str],
         display_notification: Callable[[str, str, str], None],
@@ -82,7 +81,6 @@ class AppHandler(FileSystemEventHandler):
         # save all the available users folders
         self._category = category
         self._source = pathlib.Path(source_root)
-        self._target = pathlib.Path(target_root)
         self._fail = pathlib.Path(fail_root)
         self._users = [user for user in self._source.iterdir() if user.is_dir()]
         self._display_notification = display_notification
@@ -110,7 +108,6 @@ class AppHandler(FileSystemEventHandler):
     #         for cat in self._category:
     #             process_folder(
     #                 self._source,
-    #                 self._target,
     #                 user_id.name,
     #                 cat,
     #             )
@@ -154,13 +151,13 @@ class AppHandler(FileSystemEventHandler):
             user_id = source_file.parent.parent.name
             result = process_folder(
                 self._source,
-                self._target,
                 user_id,
                 category,
             )
         except FileNotFoundError as error:
-            # non-registered user: remove the whole bogus user folder from source,
-            # not just the category (otherwise the empty user folder lingers)
+            # the server does not know this user: remove the whole bogus user
+            # folder from source, not just the category (otherwise the empty
+            # user folder lingers)
             wrong_user_folder = self._source / user_id
             rmtree(wrong_user_folder)
             self._display_error(
@@ -219,7 +216,6 @@ class AppHandler(FileSystemEventHandler):
 
 def start_watching(
     source_root: str,
-    target_root: str,
     fail_root: str,
     category: list[str],
     display_notification: Callable[[str, str, str], None],
@@ -237,7 +233,7 @@ def start_watching(
     Return: the running Observer, so the caller can stop it later.
     """
     handler = AppHandler(
-        source_root, target_root, fail_root, category, display_notification, display_error
+        source_root, fail_root, category, display_notification, display_error
     )
 
     observer = Observer()

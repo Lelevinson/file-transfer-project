@@ -1,8 +1,8 @@
 """
 Transfer service.
 
-Combines the reader and the file operations into one action: transfer all
-files in a category folder from the source to the matching target folder.
+Combines the reader, the policy checks and the server delivery into one
+action: send all valid files in a category folder to the backend server.
 This is what the watcher calls for each folder.
 """
 
@@ -10,8 +10,10 @@ import os
 import pathlib
 import logging
 
+import requests
+
 from file_transfer.core.source_reader import Reader
-from file_transfer.core.file_mover import Transfer
+from file_transfer.core.file_sender import Sender
 from file_transfer.core.policy_filter import filter_by_policy
 
 # ========= app own logger object ========= #
@@ -35,21 +37,20 @@ def _is_file_ready(file: pathlib.Path) -> bool:
 
 # ========= folder transfer logic ========= #
 def process_folder(
-    source_root: pathlib.Path, target_root: pathlib.Path, user_id: str, category: str
+    source_root: pathlib.Path, user_id: str, category: str
 ) -> tuple[list[pathlib.Path], list[pathlib.Path]] | None:
     """
-    Transfer one user/category folder from source to target.
+    Send one user/category folder from source to the backend server.
 
     Steps:
     1. list the files in source/<user_id>/<category>
     2. skip files that are still being copied (their own event handles them)
     3. validate the rest (filename, extension, size, content)
-    4. move the allowed files to the target folder, verified by hash
+    4. upload the allowed files to the server, which verifies each hash
 
     Return (allowed, rejected) file lists, or None if a step failed.
     """
     source_location = pathlib.Path(source_root) / user_id / category
-    target_location = pathlib.Path(target_root) / user_id / category
 
     user_folder = f"{user_id}/{category}"
 
@@ -87,24 +88,22 @@ def process_folder(
         logger.error(f"Reader Failed [{user_folder}]: OS error! \nMessage: {error}")
         return
 
-    ### to TRANSFER the files in the list to target subfolder
+    ### to SEND the files in the list to the backend server
     try:
-        Transfer.transfer_file(allowed_file_list, str(target_location))
+        Sender.send_file_list(allowed_file_list, user_id, category)
         logger.info(
-            f"Transfer Succeed! Transferred {len(allowed_file_list)} allowed file(s) to {user_folder}\nFiles: {[*allowed_file_list]}"
-        )  # if source and target hash list are different then will already throw error
+            f"Transfer Succeed! Sent {len(allowed_file_list)} allowed file(s) to the server for {user_folder}\nFiles: {[*allowed_file_list]}"
+        )  # the server verifies each file's hash before answering success
     except FileNotFoundError:
-        raise  # SPECIAL CASE if path does not exist, meaning inputted User ID is wrong
-    except NotADirectoryError as error:
-        logger.error(f"Transfer Failed [{user_folder}]: {error}")
-        return
-    except PermissionError as error:
+        raise  # SPECIAL CASE the server does not know this User ID
+    except requests.ConnectionError as error:
         logger.error(
-            f"Transfer Failed [{user_folder}]: Permission to access denied! \nMessage: {error}"
+            f"Transfer Failed [{user_folder}]: backend server not reachable! \nMessage: {error}"
         )
         return
     except OSError as error:
-        logger.error(f"Transfer Failed [{user_folder}]: OS error! \nMessage: {error}")
+        # covers server refusals and requests' other errors (timeouts, ...)
+        logger.error(f"Transfer Failed [{user_folder}]: {error}")
         return
 
     return allowed_file_list, rejected_file_list

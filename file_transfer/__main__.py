@@ -13,18 +13,19 @@ The *how* of the watcher and tray lives in its own module (watch, ui).
 # python/pip packages
 import logging
 import os
-import pathlib
 import signal
 import sys
+
+import requests
 
 # own modules
 from file_transfer.config import (
     SOURCE_ROOT,
-    TARGET_ROOT,
     FAIL_ROOT,
     CATEGORY,
     LOG_FILE,
     USER_IDS,
+    SERVER_URL,
 )
 from file_transfer.watch.watcher import start_watching, stop_watching
 from file_transfer.ui.tray import TrayApp
@@ -87,12 +88,16 @@ def enable_dpi_awareness() -> None:
 
 # ========= start watcher and tray app ========= #+
 if __name__ == "__main__":
-    # DEMO ONLY: "register" the mock users by creating their target folders so
-    # their transfers succeed. Need to remove this once the real server owns the user
-    # list and the target side becomes an API instead of local folders.
-    for _user in USER_IDS:
-        for _cat in CATEGORY:
-            pathlib.Path(TARGET_ROOT, _user, _cat).mkdir(parents=True, exist_ok=True)
+    # Ask the backend which users are registered. The slice assignment fills
+    # the SAME list object everyone imported, so the User ID dialog sees the
+    # fresh names. If the server is unreachable, keep the config list so the
+    # app still opens -- the server re-checks every upload anyway.
+    try:
+        _response = requests.get(f"{SERVER_URL}/users", timeout=3)
+        USER_IDS[:] = [_user["id"] for _user in _response.json()]
+        logger.info(f"Fetched {len(USER_IDS)} registered user(s) from the backend")
+    except OSError as error:
+        logger.warning(f"Could not fetch users from backend, using config list: {error}")
 
     # Crisp (not blurry) windows on scaled displays -- must run before Tk starts.
     enable_dpi_awareness()
@@ -103,7 +108,6 @@ if __name__ == "__main__":
     # Start watching source (schedules, transfers existing files, starts thread).
     observer = start_watching(
         SOURCE_ROOT,
-        TARGET_ROOT,
         FAIL_ROOT,
         CATEGORY,
         tray_app.display_notification,
