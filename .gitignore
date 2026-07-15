@@ -15,3 +15,6 @@ demo-files/
 # backend demo database and received files
 backend/*.db
 backend/uploads/
+
+# untracked config setup (for development)
+file_transfer/config.json
